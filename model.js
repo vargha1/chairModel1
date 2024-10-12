@@ -10,9 +10,41 @@ import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
 import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { DRACOLoader } from 'three/examples/jsm/Addons.js';
 
+const loadingManager = new T.LoadingManager()
+
+loadingManager.onProgress = (url, loaded, total) => {
+    document.querySelector("progress").value = (loaded / total) * 100;
+}
+
+loadingManager.onLoad = () => {
+    document.querySelector("#loadingScreen").classList.add("hidden")
+    document.getElementById("canvasHolder").appendChild(renderer.domElement);
+    gsap.to(camera.position, {
+        x: 180,
+        y: 8,
+        z: 140,
+        duration: 4,
+        ease: "expo.inOut",
+        onStart: () => controls.enabled = false,
+        onComplete: () => controls.enabled = true,
+    },)
+    gsap.to(controls.target, {
+        x: 0,
+        y: 13,
+        z: 0,
+        duration: 4,
+        ease: "expo.inOut",
+        onStart: () => controls.enabled = false,
+        onComplete: () => controls.enabled = true,
+        onUpdate: function () {
+            controls.update()
+        }
+    })
+}
+
 const scene = new T.Scene();
 const camera = new T.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000)
-const loader = new GLTFLoader().setPath("./model/");
+const loader = new GLTFLoader(loadingManager).setPath("./model/");
 const renderer = new T.WebGLRenderer({ antialias: true, alpha: true });
 const draco = new DRACOLoader()
 draco.setDecoderPath('/examples/jsm/libs/draco/');
@@ -35,47 +67,13 @@ const materials = {};
 
 camera.position.set(-120, 150, 70)
 
-let elem = document.createElement('div');
-elem.className = "flex absolute h-[100dvh] items-center justify-center md:left-[20%] md:right-[20%] left-0 right-0"
-elem.id = "wrapper"
-elem.innerHTML = `
-    <div
-      class="flex md:flex-row flex-col relative bg-[#1d1f39] z-[26] h-fit rounded-[20px] flex-wrap transition-all duration-300"
-      id="popframe">
-        <button
-          class="text-[40px] text-white hover:text-violet-600" onclick="start()">
-          Start</button>
-    </div>
-    `
-document.getElementById("startSection").appendChild(elem)
-
 document.addEventListener("DOMContentLoaded", () => {
-    window.start = () => {
-        event.preventDefault();
-        document.querySelector("#startSection").classList.add("hidden")
-        gsap.to(camera.position, {
-            x: 180,
-            y: 8,
-            z: 140,
-            duration: 6,
-            ease: "expo.inOut",
-            onStart: () => controls.enabled = false,
-            onComplete: () => controls.enabled = true,
-        },)
-        gsap.to(controls.target, {
-            x: 0,
-            y: 13,
-            z: 0,
-            duration: 5,
-            ease: "expo.inOut",
-            onStart: () => controls.enabled = false,
-            onComplete: () => controls.enabled = true,
-            onUpdate: function () {
-                controls.update()
-            }
-        })
-        document.getElementById("canvasHolder").appendChild(renderer.domElement);
-    }
+    // window.start = () => {
+    //     event.preventDefault();
+    //     document.querySelector("#startSection").classList.add("hidden")
+
+    //     document.getElementById("canvasHolder").appendChild(renderer.domElement);
+    // }
 })
 
 let mixer, clock;
@@ -95,7 +93,6 @@ loader.load("pmp_fourniture__sam.glb", function (gltf) {
     clock = new T.Clock()
     animate()
     scene.add(mesh)
-    loading()
 })
 
 const BLOOM_SCENE = 1;
@@ -179,13 +176,6 @@ function restoreMaterial(obj) {
         delete materials[obj.uuid];
     }
 }
-
-document.getElementById("loadingScreen").classList.add("z-[20]");
-document.getElementById("loadingScreen").innerHTML = `<img src="images/loading.gif" class="w-auto h-[200px]">`
-function loading() {
-    document.getElementById("loadingScreen").classList.add("hidden")
-}
-
 // function addStars() {
 //   const geometry = new T.SphereGeometry(0.3, 0.3, 0.3);
 //   const mat = new T.MeshStandardMaterial({ color: 0xffffff })
